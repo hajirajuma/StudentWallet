@@ -69,7 +69,10 @@ fun DashboardScreen(
     val totalIncome = viewModel.getTotalIncome()
     val totalExpenses = viewModel.getTotalExpenses()
     val totalBalance = viewModel.getTotalBalance()
-    val budgetUsedPercent = ((totalExpenses / budgetLimit) * 100).toInt().coerceIn(0, 100)
+    val hasBudget = budgetLimit > 0.0
+    val budgetUsedPercent = if (hasBudget) {
+        ((totalExpenses / budgetLimit) * 100).toInt().coerceIn(0, 100)
+    } else 0
 
     LazyColumn(
         modifier = Modifier
@@ -274,7 +277,7 @@ fun DashboardScreen(
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "$budgetUsedPercent% used",
+                                text = if (hasBudget) "$budgetUsedPercent% used" else "Not set",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = OrangePrimary
@@ -301,13 +304,21 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "MK ${String.format("%,.0f", totalExpenses)} / ${String.format("%,.0f", budgetLimit)}",
+                            text = if (hasBudget) {
+                                "MK ${String.format("%,.0f", totalExpenses)} / ${String.format("%,.0f", budgetLimit)}"
+                            } else {
+                                "MK ${String.format("%,.0f", totalExpenses)} spent"
+                            },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                         Text(
-                            text = "Remaining: MK ${String.format("%,.0f", (budgetLimit - totalExpenses).coerceAtLeast(0.0))}",
+                            text = if (hasBudget) {
+                                "Remaining: MK ${String.format("%,.0f", (budgetLimit - totalExpenses).coerceAtLeast(0.0))}"
+                            } else {
+                                "Budget not set"
+                            },
                             fontSize = 12.sp,
                             color = TextSecondary
                         )

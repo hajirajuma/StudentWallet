@@ -22,7 +22,6 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -59,6 +58,8 @@ fun ProfileScreen(
     onNavigateEditProfile: () -> Unit,
     onNavigateSpendingSummary: () -> Unit,
     onNavigateBudgetSettings: () -> Unit,
+    onNavigateNotifications: () -> Unit,
+    onNavigateHelpSupport: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     val userProfile by viewModel.userProfile.collectAsState()
@@ -163,11 +164,6 @@ fun ProfileScreen(
                         onClick = onNavigateEditProfile
                     )
                     ProfileOptionRow(
-                        icon = Icons.Default.Lock,
-                        title = "Change Password",
-                        onClick = onNavigateEditProfile
-                    )
-                    ProfileOptionRow(
                         icon = Icons.Default.Analytics,
                         title = "Spending Summary",
                         onClick = onNavigateSpendingSummary
@@ -180,12 +176,12 @@ fun ProfileScreen(
                     ProfileOptionRow(
                         icon = Icons.Default.Notifications,
                         title = "Notifications",
-                        onClick = { }
+                        onClick = onNavigateNotifications
                     )
                     ProfileOptionRow(
                         icon = Icons.AutoMirrored.Filled.HelpOutline,
                         title = "Help & Support",
-                        onClick = { }
+                        onClick = onNavigateHelpSupport
                     )
                     ProfileOptionRow(
                         icon = Icons.AutoMirrored.Filled.ExitToApp,
@@ -255,6 +251,8 @@ fun ProfileScreenPreview() {
             onNavigateEditProfile = {},
             onNavigateSpendingSummary = {},
             onNavigateBudgetSettings = {},
+            onNavigateNotifications = {},
+            onNavigateHelpSupport = {},
             onLogoutClick = {}
         )
     }

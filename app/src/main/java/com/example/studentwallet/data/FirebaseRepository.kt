@@ -8,6 +8,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import java.util.Calendar
 
 class FirebaseRepository {
 
@@ -215,30 +216,51 @@ class FirebaseRepository {
         val colRef = firestore.collection("users")
             .document(uid)
             .collection("budgets")
-            .orderBy("updatedAt", Query.Direction.DESCENDING)
-            .limit(1)
+
+        val cal = Calendar.getInstance()
+        val currentMonthId = "${cal.get(Calendar.YEAR)}_${cal.get(Calendar.MONTH) + 1}"
 
         val listener = colRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                trySend(100000.0)
+                // Keep the value already being shown instead of dropping the user's budget
                 return@addSnapshotListener
             }
-            if (snapshot != null && !snapshot.isEmpty) {
-                val doc = snapshot.documents.first()
-                val amt = doc.getDouble("amount") ?: (doc.getLong("amount")?.toDouble() ?: 100000.0)
-                trySend(amt)
-            } else {
-                trySend(100000.0)
-            }
+            val docs = snapshot?.documents ?: emptyList()
+            // Prefer the document written for the current month, then fall back to the
+            // most recently updated budget saved by this user.
+            val doc = docs.firstOrNull { it.id == currentMonthId }
+                ?: docs.maxByOrNull { it.getLong("updatedAt") ?: 0L }
+            val amount = doc?.let { budgetDoc ->
+                // `limit` is the field the Firestore rules validate. `amount` is only read as a
+                // fallback so budgets saved before this field name existed still load.
+                budgetDoc.getDouble("limit")
+                    ?: budgetDoc.getLong("limit")?.toDouble()
+                    ?: budgetDoc.getDouble("amount")
+                    ?: budgetDoc.getLong("amount")?.toDouble()
+            } ?: 0.0
+            trySend(amount)
         }
         awaitClose { listener.remove() }
     }
 
     suspend fun setMonthlyBudget(uid: String, month: Int, year: Int, amount: Double): Result<Unit> {
+        val signedInUid = auth.currentUser?.uid
+            ?: return Result.failure(IllegalStateException("You need to be signed in to save a budget."))
+        if (signedInUid != uid) {
+            return Result.failure(
+                IllegalStateException("A budget can only be saved for the signed-in user.")
+            )
+        }
+        if (month !in 1..12 || year <= 0 || amount < 0.0) {
+            return Result.failure(IllegalArgumentException("Invalid budget values."))
+        }
         return try {
             val budgetId = "${year}_$month"
             val budgetData = mapOf(
                 "id" to budgetId,
+                // The Firestore rules validate `limit`. `amount` is written alongside it so
+                // existing budgets/tools that use the older field name stay consistent.
+                "limit" to amount,
                 "amount" to amount,
                 "month" to month,
                 "year" to year,

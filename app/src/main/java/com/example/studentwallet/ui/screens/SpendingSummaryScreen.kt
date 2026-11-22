@@ -87,7 +87,7 @@ fun SpendingSummaryScreen(
             category = it.category,
             amount = it.amount,
             percentage = it.percentage.toFloat(),
-            color = it.category.color
+            color = NavyBlue
         )
     }
 

@@ -52,8 +52,10 @@ import com.example.studentwallet.ui.screens.AddTransactionScreen
 import com.example.studentwallet.ui.screens.DashboardScreen
 import com.example.studentwallet.ui.screens.EditProfileScreen
 import com.example.studentwallet.ui.screens.EditTransactionScreen
+import com.example.studentwallet.ui.screens.HelpSupportScreen
 import com.example.studentwallet.ui.screens.LoginScreen
 import com.example.studentwallet.ui.screens.MonthlyBudgetScreen
+import com.example.studentwallet.ui.screens.NotificationsScreen
 import com.example.studentwallet.ui.screens.OnboardingScreen
 import com.example.studentwallet.ui.screens.ProfileScreen
 import com.example.studentwallet.ui.screens.RegisterScreen
@@ -278,7 +280,7 @@ fun StudentWalletApp(
                     onTransactionClick = { tx ->
                         navController.navigate("edit_transaction/${tx.id}")
                     },
-                    onNotificationClick = { }
+                    onNotificationClick = { navController.navigate("notifications") }
                 )
             }
 
@@ -308,6 +310,8 @@ fun StudentWalletApp(
                     onNavigateEditProfile = { navController.navigate("edit_profile") },
                     onNavigateSpendingSummary = { navController.navigate("spending_summary") },
                     onNavigateBudgetSettings = { navController.navigate("budget") },
+                    onNavigateNotifications = { navController.navigate("notifications") },
+                    onNavigateHelpSupport = { navController.navigate("help_support") },
                     onLogoutClick = {
                         viewModel.logout()
                         navController.navigate("login") {
@@ -360,6 +364,18 @@ fun StudentWalletApp(
             composable("spending_summary") {
                 SpendingSummaryScreen(
                     viewModel = viewModel,
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+
+            composable("notifications") {
+                NotificationsScreen(
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+
+            composable("help_support") {
+                HelpSupportScreen(
                     onBackClick = { navController.popBackStack() }
                 )
             }

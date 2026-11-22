@@ -46,6 +46,8 @@ import com.example.studentwallet.data.CategoryBudget
 import com.example.studentwallet.ui.components.CircularProgressRing
 import com.example.studentwallet.ui.components.CustomTextField
 import com.example.studentwallet.ui.components.PrimaryButton
+import com.example.studentwallet.ui.theme.ExpenseRed
+import com.example.studentwallet.ui.theme.IncomeGreen
 import com.example.studentwallet.ui.theme.NavyBlue
 import com.example.studentwallet.ui.theme.StudentWalletTheme
 import com.example.studentwallet.ui.theme.TextPrimary
@@ -58,8 +60,13 @@ fun MonthlyBudgetScreen(
     onBackClick: () -> Unit
 ) {
     val budgetLimit by viewModel.monthlyBudgetLimit.collectAsState()
+    val budgetError by viewModel.budgetError.collectAsState()
+    val budgetSaved by viewModel.budgetSaved.collectAsState()
     val totalExpenses = viewModel.getTotalExpenses()
-    val budgetUsedPercent = ((totalExpenses / budgetLimit) * 100).toInt().coerceIn(0, 100)
+    val hasBudget = budgetLimit > 0.0
+    val budgetUsedPercent = if (hasBudget) {
+        ((totalExpenses / budgetLimit) * 100).toInt().coerceIn(0, 100)
+    } else 0
     val categoryBudgets = viewModel.getCategoryBudgets()
 
     var showSetBudgetDialog by remember { mutableStateOf(false) }
@@ -75,19 +82,35 @@ fun MonthlyBudgetScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     CustomTextField(
                         value = newBudgetText,
-                        onValueChange = { newBudgetText = it },
+                        onValueChange = { input ->
+                            // Keep only digits so the amount always parses
+                            newBudgetText = input.filter { it.isDigit() }
+                            viewModel.clearBudgetError()
+                        },
                         label = "Budget Amount (MK)",
-                        placeholder = "e.g. 100000",
+                        placeholder = "e.g. 50000",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
+                    if (budgetError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = budgetError.orEmpty(),
+                            fontSize = 12.sp,
+                            color = ExpenseRed
+                        )
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    val newLimit = newBudgetText.toDoubleOrNull() ?: budgetLimit
-                    viewModel.setMonthlyBudget(newLimit)
-                    showSetBudgetDialog = false
-                }) {
+                TextButton(
+                    enabled = (newBudgetText.toDoubleOrNull() ?: 0.0) > 0.0,
+                    onClick = {
+                        val newLimit = newBudgetText.toDoubleOrNull()
+                        if (newLimit != null && newLimit > 0.0 && viewModel.setMonthlyBudget(newLimit)) {
+                            showSetBudgetDialog = false
+                        }
+                    }
+                ) {
                     Text("Save", color = NavyBlue, fontWeight = FontWeight.Bold)
                 }
             },
@@ -154,18 +177,40 @@ fun MonthlyBudgetScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "MK ${String.format("%,.0f", totalExpenses)} / ${String.format("%,.0f", budgetLimit)}",
+                        text = if (hasBudget) {
+                            "MK ${String.format("%,.0f", totalExpenses)} / ${String.format("%,.0f", budgetLimit)}"
+                        } else {
+                            "No budget set yet"
+                        },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = NavyBlue
+                        color = if (hasBudget) NavyBlue else TextSecondary
                     )
+
+                    if (budgetError != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = budgetError.orEmpty(),
+                            fontSize = 12.sp,
+                            color = ExpenseRed
+                        )
+                    } else if (budgetSaved) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Budget saved successfully.",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = IncomeGreen
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(20.dp))
 
                     PrimaryButton(
                         text = "Set New Budget",
                         onClick = {
-                            newBudgetText = String.format("%.0f", budgetLimit)
+                            viewModel.clearBudgetError()
+                            newBudgetText = if (hasBudget) String.format("%.0f", budgetLimit) else ""
                             showSetBudgetDialog = true
                         }
                     )

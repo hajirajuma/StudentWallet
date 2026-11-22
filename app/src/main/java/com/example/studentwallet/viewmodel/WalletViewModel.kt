@@ -45,8 +45,15 @@ class WalletViewModel(
     private val _showBalance = MutableStateFlow(true)
     val showBalance: StateFlow<Boolean> = _showBalance.asStateFlow()
 
-    private val _monthlyBudgetLimit = MutableStateFlow(100000.0)
+    // 0.0 means the user has not set a budget yet
+    private val _monthlyBudgetLimit = MutableStateFlow(0.0)
     val monthlyBudgetLimit: StateFlow<Double> = _monthlyBudgetLimit.asStateFlow()
+
+    private val _budgetError = MutableStateFlow<String?>(null)
+    val budgetError: StateFlow<String?> = _budgetError.asStateFlow()
+
+    private val _budgetSaved = MutableStateFlow(false)
+    val budgetSaved: StateFlow<Boolean> = _budgetSaved.asStateFlow()
 
     private val _transactions = MutableStateFlow<List<Transaction>>(emptyList())
     val transactions: StateFlow<List<Transaction>> = _transactions.asStateFlow()
@@ -70,7 +77,9 @@ class WalletViewModel(
         budgetJob?.cancel()
 
         _isLoadingTransactions.value = true
-        _monthlyBudgetLimit.value = 100000.0 // Reset to default state per user before loading
+        _monthlyBudgetLimit.value = 0.0 // Reset per user before loading their saved budget
+        _budgetError.value = null
+        _budgetSaved.value = false
 
         profileJob = viewModelScope.launch {
             repository.getUserProfileFlow(uid).collect { profile ->
@@ -243,7 +252,9 @@ class WalletViewModel(
         _isLoggedIn.value = false
         _userProfile.value = UserProfile()
         _transactions.value = emptyList()
-        _monthlyBudgetLimit.value = 100000.0
+        _monthlyBudgetLimit.value = 0.0
+        _budgetError.value = null
+        _budgetSaved.value = false
         _authUiState.value = AuthUiState.Idle
     }
 
@@ -299,17 +310,68 @@ class WalletViewModel(
         }
     }
 
-    fun setMonthlyBudget(newLimit: Double) {
-        if (newLimit <= 0) return
-        val uid = repository.currentUser?.uid ?: return
+    private fun getReadableBudgetErrorMessage(exception: Throwable): String {
+        val msg = exception.message ?: ""
+        return when {
+            exception is FirebaseNetworkException ||
+            msg.contains("network", ignoreCase = true) ||
+            msg.contains("unavailable", ignoreCase = true) ||
+            msg.contains("timeout", ignoreCase = true) -> {
+                "No internet connection. Please check your network and try again."
+            }
+            msg.contains("PERMISSION_DENIED", ignoreCase = true) ||
+            msg.contains("insufficient permissions", ignoreCase = true) ||
+            msg.contains("permission denied", ignoreCase = true) -> {
+                // Report what Firestore actually said instead of guessing a cause.
+                "Could not save your budget: Firestore denied the write. " +
+                    "Details: ${if (msg.isBlank()) "PERMISSION_DENIED" else msg}"
+            }
+            else -> "Could not save your budget: ${msg.ifBlank { "unknown error" }}"
+        }
+    }
+
+    /**
+     * Saves the monthly budget for the current month.
+     * Returns false when the amount is invalid or the user is not signed in.
+     * The write itself is confirmed asynchronously: [budgetSaved] turns true only after
+     * Firestore accepts it, otherwise [budgetError] explains the failure.
+     */
+    fun setMonthlyBudget(newLimit: Double): Boolean {
+        if (newLimit <= 0) {
+            _budgetError.value = "Enter a budget amount greater than 0."
+            return false
+        }
+        val uid = repository.currentUser?.uid
+        if (uid == null) {
+            _budgetError.value = "You need to be signed in to save a budget."
+            return false
+        }
         val cal = Calendar.getInstance()
         val currentMonth = cal.get(Calendar.MONTH) + 1
         val currentYear = cal.get(Calendar.YEAR)
 
-        _monthlyBudgetLimit.value = newLimit
+        val previousLimit = _monthlyBudgetLimit.value
+        _budgetError.value = null
+        _budgetSaved.value = false
+        _monthlyBudgetLimit.value = newLimit // Show the new budget immediately
+
         viewModelScope.launch {
             repository.setMonthlyBudget(uid, currentMonth, currentYear, newLimit)
+                .onSuccess {
+                    _budgetSaved.value = true
+                }
+                .onFailure { exception ->
+                    _monthlyBudgetLimit.value = previousLimit
+                    _budgetSaved.value = false
+                    _budgetError.value = getReadableBudgetErrorMessage(exception)
+                }
         }
+        return true
+    }
+
+    fun clearBudgetError() {
+        _budgetError.value = null
+        _budgetSaved.value = false
     }
 
     fun updateUserProfile(name: String, email: String, phone: String) {

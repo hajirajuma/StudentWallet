@@ -78,7 +78,7 @@ data class UserProfile(
 
 data class MonthlyBudget(
     val id: String = "",
-    val amount: Double = 100000.0,
+    val amount: Double = 0.0,
     val month: Int = 3,
     val year: Int = 2026,
     val updatedAt: Long = System.currentTimeMillis()
