@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,10 +39,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.studentwallet.data.CategoryType
+import com.example.studentwallet.data.TransactionType
 import com.example.studentwallet.ui.components.DonutChart
 import com.example.studentwallet.ui.components.DonutSlice
 import com.example.studentwallet.ui.theme.NavyBlue
-import com.example.studentwallet.ui.theme.OrangePrimary
 import com.example.studentwallet.ui.theme.StudentWalletTheme
 import com.example.studentwallet.ui.theme.TextPrimary
 import com.example.studentwallet.ui.theme.TextSecondary
@@ -58,17 +59,28 @@ fun SpendingSummaryScreen(
     viewModel: WalletViewModel,
     onBackClick: () -> Unit
 ) {
+    val transactions by viewModel.transactions.collectAsState()
     val totalExpenses = viewModel.getTotalExpenses()
-    var selectedTab by remember { mutableStateOf(0) } // 0 = Categories, 1 = Day/Week/Month
+    var selectedTab by remember { mutableStateOf(0) }
 
-    val summaryItems = listOf(
-        CategorySummaryItem(CategoryType.FOOD, 42, 14700.0),
-        CategorySummaryItem(CategoryType.TRANSPORT, 17, 5950.0),
-        CategorySummaryItem(CategoryType.ACCOMMODATION, 14, 4900.0),
-        CategorySummaryItem(CategoryType.EDUCATION, 11, 3850.0),
-        CategorySummaryItem(CategoryType.ENTERTAINMENT, 9, 3150.0),
-        CategorySummaryItem(CategoryType.OTHER, 7, 2450.0)
+    val approvedCategories = listOf(
+        CategoryType.FOOD,
+        CategoryType.TRANSPORT,
+        CategoryType.ACCOMMODATION,
+        CategoryType.EDUCATION,
+        CategoryType.AIRTIME_DATA,
+        CategoryType.ENTERTAINMENT,
+        CategoryType.OTHER
     )
+
+    val expenseTxList = transactions.filter { it.type == TransactionType.EXPENSE }
+    val summaryItems = approvedCategories.mapNotNull { cat ->
+        val spent = expenseTxList.filter { it.category == cat }.sumOf { it.amount }
+        if (spent > 0.0) {
+            val pct = if (totalExpenses > 0) ((spent / totalExpenses) * 100).toInt() else 0
+            CategorySummaryItem(cat, pct, spent)
+        } else null
+    }
 
     val slices = summaryItems.map {
         DonutSlice(
@@ -89,7 +101,6 @@ fun SpendingSummaryScreen(
         item {
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -111,7 +122,6 @@ fun SpendingSummaryScreen(
             }
         }
 
-        // Toggle Tabs
         item {
             Row(
                 modifier = Modifier
@@ -124,7 +134,7 @@ fun SpendingSummaryScreen(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (selectedTab == 0) OrangePrimary else Color.Transparent)
+                        .background(if (selectedTab == 0) NavyBlue else Color.Transparent)
                         .clickable { selectedTab = 0 }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
@@ -140,7 +150,7 @@ fun SpendingSummaryScreen(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (selectedTab == 1) OrangePrimary else Color.Transparent)
+                        .background(if (selectedTab == 1) NavyBlue else Color.Transparent)
                         .clickable { selectedTab = 1 }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
@@ -155,7 +165,6 @@ fun SpendingSummaryScreen(
             }
         }
 
-        // Donut Chart Card
         item {
             Card(
                 shape = RoundedCornerShape(20.dp),
@@ -179,7 +188,6 @@ fun SpendingSummaryScreen(
             }
         }
 
-        // Breakdown List Header
         item {
             Text(
                 text = "Category Breakdown",
@@ -189,50 +197,72 @@ fun SpendingSummaryScreen(
             )
         }
 
-        // Breakdown Items
-        items(summaryItems) { item ->
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+        if (summaryItems.isEmpty()) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .clip(CircleShape)
-                                .background(item.category.color)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = item.category.title,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            text = "No expenses recorded yet.",
+                            color = TextSecondary,
+                            fontSize = 14.sp
                         )
                     }
+                }
+            }
+        } else {
+            items(summaryItems) { item ->
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .clip(CircleShape)
+                                    .background(item.category.color)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = item.category.title,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "${item.percentage}%",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "MK ${String.format("%,.0f", item.amount)}",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = NavyBlue
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "${item.percentage}%",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextSecondary
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = "MK ${String.format("%,.0f", item.amount)}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NavyBlue
+                            )
+                        }
                     }
                 }
             }

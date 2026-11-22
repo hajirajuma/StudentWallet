@@ -1,7 +1,7 @@
 package com.example.studentwallet.ui.screens
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -50,6 +51,8 @@ import com.example.studentwallet.ui.theme.IncomeGreenBg
 import com.example.studentwallet.ui.theme.NavyBlue
 import com.example.studentwallet.ui.theme.StudentWalletTheme
 import com.example.studentwallet.viewmodel.WalletViewModel
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun AddTransactionScreen(
@@ -60,9 +63,29 @@ fun AddTransactionScreen(
     onBackClick: () -> Unit,
     onSaveSuccess: () -> Unit
 ) {
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+    val initialYear = calendar.get(Calendar.YEAR)
+    val initialMonth = calendar.get(Calendar.MONTH)
+    val initialDay = calendar.get(Calendar.DAY_OF_MONTH)
+
+    val todayFormatted = String.format(Locale.getDefault(), "%04d-%02d-%02d", initialYear, initialMonth + 1, initialDay)
+
     var amountText by remember { mutableStateOf("") }
-    var dateText by remember { mutableStateOf("Today") }
+    var dateText by remember { mutableStateOf(todayFormatted) }
     var noteText by remember { mutableStateOf("") }
+
+    val datePickerDialog = remember {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                dateText = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, dayOfMonth)
+            },
+            initialYear,
+            initialMonth,
+            initialDay
+        )
+    }
 
     val isExpense = transactionType == TransactionType.EXPENSE
 
@@ -137,34 +160,30 @@ fun AddTransactionScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Date Field
+        // Date Field with Interactive Calendar Picker
         CustomTextField(
             value = dateText,
-            onValueChange = { dateText = it },
+            onValueChange = {},
             label = "Date",
             placeholder = "Select date",
-            trailingIcon = Icons.Default.CalendarToday
+            trailingIcon = Icons.Default.CalendarToday,
+            readOnly = true,
+            onClick = { datePickerDialog.show() }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Category Selector (if Expense)
         if (isExpense) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onOpenCategorySelector() }
-            ) {
-                CustomTextField(
-                    value = selectedCategory?.title ?: "",
-                    onValueChange = {},
-                    label = "Category",
-                    placeholder = "Select category",
-                    trailingIcon = Icons.Default.KeyboardArrowDown,
-                    readOnly = true,
-                    onClick = onOpenCategorySelector
-                )
-            }
+            CustomTextField(
+                value = selectedCategory?.title ?: "",
+                onValueChange = {},
+                label = "Category",
+                placeholder = "Select category",
+                trailingIcon = Icons.Default.KeyboardArrowDown,
+                readOnly = true,
+                onClick = onOpenCategorySelector
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
         }

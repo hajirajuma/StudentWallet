@@ -47,7 +47,6 @@ import com.example.studentwallet.ui.components.CircularProgressRing
 import com.example.studentwallet.ui.components.CustomTextField
 import com.example.studentwallet.ui.components.PrimaryButton
 import com.example.studentwallet.ui.theme.NavyBlue
-import com.example.studentwallet.ui.theme.OrangePrimary
 import com.example.studentwallet.ui.theme.StudentWalletTheme
 import com.example.studentwallet.ui.theme.TextPrimary
 import com.example.studentwallet.ui.theme.TextSecondary
@@ -89,7 +88,7 @@ fun MonthlyBudgetScreen(
                     viewModel.setMonthlyBudget(newLimit)
                     showSetBudgetDialog = false
                 }) {
-                    Text("Save", color = OrangePrimary, fontWeight = FontWeight.Bold)
+                    Text("Save", color = NavyBlue, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -237,9 +236,10 @@ fun CategoryBudgetRowItem(catBudget: CategoryBudget) {
                 }
 
                 Text(
-                    text = "MK ${String.format("%,.0f", catBudget.spentAmount)} / ${String.format("%,.0f", catBudget.totalBudget)}",
-                    fontSize = 13.sp,
-                    color = TextSecondary
+                    text = "MK ${String.format("%,.0f", catBudget.spentAmount)}",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = NavyBlue
                 )
             }
 

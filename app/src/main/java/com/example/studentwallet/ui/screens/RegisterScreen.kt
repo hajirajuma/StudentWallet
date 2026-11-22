@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -37,14 +39,17 @@ import androidx.compose.ui.unit.sp
 import com.example.studentwallet.ui.components.CustomTextField
 import com.example.studentwallet.ui.components.PrimaryButton
 import com.example.studentwallet.ui.components.StudentWalletHeaderLogo
+import com.example.studentwallet.ui.theme.ExpenseRed
 import com.example.studentwallet.ui.theme.NavyBlue
 import com.example.studentwallet.ui.theme.OrangePrimary
 import com.example.studentwallet.ui.theme.StudentWalletTheme
 import com.example.studentwallet.ui.theme.TextSecondary
+import com.example.studentwallet.viewmodel.AuthUiState
 
 @Composable
 fun RegisterScreen(
-    onRegisterSuccess: (name: String, email: String, phone: String, pass: String) -> Unit,
+    authUiState: AuthUiState = AuthUiState.Idle,
+    onRegisterSubmit: (name: String, email: String, phone: String, pass: String) -> Unit,
     onNavigateLogin: () -> Unit
 ) {
     var fullName by remember { mutableStateOf("Hajirah Juma") }
@@ -57,7 +62,8 @@ fun RegisterScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(24.dp),
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -129,13 +135,26 @@ fun RegisterScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (authUiState is AuthUiState.Error) {
+                Text(
+                    text = authUiState.message,
+                    color = ExpenseRed,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
 
             PrimaryButton(
-                text = "Sign Up",
-                onClick = { onRegisterSuccess(fullName, email, phoneNumber, password) }
+                text = if (authUiState is AuthUiState.Loading) "Creating Account..." else "Sign Up",
+                enabled = authUiState !is AuthUiState.Loading,
+                onClick = { onRegisterSubmit(fullName, email, phoneNumber, password) }
             )
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Row(
             modifier = Modifier.padding(bottom = 16.dp),
@@ -158,7 +177,8 @@ fun RegisterScreen(
 fun RegisterScreenPreview() {
     StudentWalletTheme {
         RegisterScreen(
-            onRegisterSuccess = { _, _, _, _ -> },
+            authUiState = AuthUiState.Idle,
+            onRegisterSubmit = { _, _, _, _ -> },
             onNavigateLogin = {}
         )
     }

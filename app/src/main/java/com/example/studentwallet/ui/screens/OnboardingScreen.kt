@@ -107,7 +107,7 @@ fun OnboardingScreen(
                             height = 8.dp
                         )
                         .clip(CircleShape)
-                        .background(if (index == currentPage) OrangePrimary else Color(0xFFE5E7EB))
+                        .background(if (index == currentPage) NavyBlue else Color(0xFFE5E7EB))
                 )
             }
         }

@@ -36,14 +36,17 @@ import androidx.compose.ui.unit.sp
 import com.example.studentwallet.ui.components.CustomTextField
 import com.example.studentwallet.ui.components.PrimaryButton
 import com.example.studentwallet.ui.components.StudentWalletHeaderLogo
+import com.example.studentwallet.ui.theme.ExpenseRed
 import com.example.studentwallet.ui.theme.NavyBlue
 import com.example.studentwallet.ui.theme.OrangePrimary
 import com.example.studentwallet.ui.theme.StudentWalletTheme
 import com.example.studentwallet.ui.theme.TextSecondary
+import com.example.studentwallet.viewmodel.AuthUiState
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (email: String, pass: String) -> Unit,
+    authUiState: AuthUiState = AuthUiState.Idle,
+    onLoginClick: (email: String, pass: String) -> Unit,
     onNavigateRegister: () -> Unit
 ) {
     var emailOrUsername by remember { mutableStateOf("hajirah@gmail.com") }
@@ -86,9 +89,10 @@ fun LoginScreen(
             CustomTextField(
                 value = emailOrUsername,
                 onValueChange = { emailOrUsername = it },
-                label = "Email or Username",
-                placeholder = "e.g. student@school.ac.mw",
-                leadingIcon = Icons.Default.Person
+                label = "Email Address",
+                placeholder = "e.g. hajirah@gmail.com",
+                leadingIcon = Icons.Default.Person,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -104,11 +108,22 @@ fun LoginScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (authUiState is AuthUiState.Error) {
+                Text(
+                    text = authUiState.message,
+                    color = ExpenseRed,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
 
             PrimaryButton(
-                text = "Log In",
-                onClick = { onLoginSuccess(emailOrUsername, password) }
+                text = if (authUiState is AuthUiState.Loading) "Logging in..." else "Log In",
+                enabled = authUiState !is AuthUiState.Loading,
+                onClick = { onLoginClick(emailOrUsername, password) }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -118,7 +133,6 @@ fun LoginScreen(
             }
         }
 
-        // Footer link
         Row(
             modifier = Modifier
                 .padding(bottom = 16.dp),
@@ -141,7 +155,8 @@ fun LoginScreen(
 fun LoginScreenPreview() {
     StudentWalletTheme {
         LoginScreen(
-            onLoginSuccess = { _, _ -> },
+            authUiState = AuthUiState.Idle,
+            onLoginClick = { _, _ -> },
             onNavigateRegister = {}
         )
     }

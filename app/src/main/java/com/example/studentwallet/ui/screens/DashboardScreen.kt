@@ -232,7 +232,7 @@ fun DashboardScreen(
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("Total Expenses", fontSize = 10.sp, color = Color.White.copy(alpha = 0.7f))
+                                Text("Total Expense", fontSize = 10.sp, color = Color.White.copy(alpha = 0.7f))
                                 Text(
                                     text = if (showBalance) "MK ${String.format("%,.0f", totalExpenses)}" else "****",
                                     fontSize = 12.sp,
@@ -340,11 +340,34 @@ fun DashboardScreen(
         }
 
         // Recent Transactions List
-        items(transactions.take(4)) { transaction ->
-            TransactionRowItem(
-                transaction = transaction,
-                onClick = { onTransactionClick(transaction) }
-            )
+        if (transactions.isEmpty()) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No transactions recorded yet. Tap + below to add one.",
+                            color = TextSecondary,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+        } else {
+            items(transactions.take(4)) { transaction ->
+                TransactionRowItem(
+                    transaction = transaction,
+                    onClick = { onTransactionClick(transaction) }
+                )
+            }
         }
 
         item {

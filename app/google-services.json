@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "751386141468",
+    "project_id": "studentwallet2-30cd8",
+    "storage_bucket": "studentwallet2-30cd8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:751386141468:android:02bf1f07cf94de11e9d0d9",
+        "android_client_info": {
+          "package_name": "com.example.studentwallet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBr2Pn-bmrE7AlwNeoK_gICWKHkUwAufI0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

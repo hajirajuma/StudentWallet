@@ -24,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +77,8 @@ fun StudentWalletApp(
     viewModel: WalletViewModel = viewModel()
 ) {
     val navController = rememberNavController()
+    val authUiState by viewModel.authUiState.collectAsState()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 
     var selectedTab by remember { mutableStateOf(NavTab.HOME) }
     var showAddOptionsSheet by remember { mutableStateOf(false) }
@@ -107,7 +110,6 @@ fun StudentWalletApp(
                 )
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Add Income Option
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color(0xFFF8FAFC),
@@ -141,7 +143,6 @@ fun StudentWalletApp(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Add Expense Option
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color(0xFFF8FAFC),
@@ -205,8 +206,14 @@ fun StudentWalletApp(
             composable("splash") {
                 SplashScreen(
                     onNavigateNext = {
-                        navController.navigate("onboarding") {
-                            popUpTo("splash") { inclusive = true }
+                        if (isLoggedIn) {
+                            navController.navigate("dashboard") {
+                                popUpTo("splash") { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate("onboarding") {
+                                popUpTo("splash") { inclusive = true }
+                            }
                         }
                     }
                 )
@@ -224,13 +231,18 @@ fun StudentWalletApp(
 
             composable("login") {
                 LoginScreen(
-                    onLoginSuccess = { email, pass ->
-                        viewModel.login(email, pass)
-                        navController.navigate("dashboard") {
-                            popUpTo("login") { inclusive = true }
+                    authUiState = authUiState,
+                    onLoginClick = { email, pass ->
+                        viewModel.login(email, pass) { success, _ ->
+                            if (success) {
+                                navController.navigate("dashboard") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            }
                         }
                     },
                     onNavigateRegister = {
+                        viewModel.clearAuthUiState()
                         navController.navigate("register")
                     }
                 )
@@ -238,13 +250,18 @@ fun StudentWalletApp(
 
             composable("register") {
                 RegisterScreen(
-                    onRegisterSuccess = { name, email, phone, pass ->
-                        viewModel.register(name, email, phone, pass)
-                        navController.navigate("dashboard") {
-                            popUpTo("register") { inclusive = true }
+                    authUiState = authUiState,
+                    onRegisterSubmit = { name, email, phone, pass ->
+                        viewModel.register(name, email, phone, pass) { success, _ ->
+                            if (success) {
+                                navController.navigate("dashboard") {
+                                    popUpTo("register") { inclusive = true }
+                                }
+                            }
                         }
                     },
                     onNavigateLogin = {
+                        viewModel.clearAuthUiState()
                         navController.popBackStack()
                     }
                 )
@@ -292,6 +309,7 @@ fun StudentWalletApp(
                     onNavigateSpendingSummary = { navController.navigate("spending_summary") },
                     onNavigateBudgetSettings = { navController.navigate("budget") },
                     onLogoutClick = {
+                        viewModel.logout()
                         navController.navigate("login") {
                             popUpTo(0) { inclusive = true }
                         }

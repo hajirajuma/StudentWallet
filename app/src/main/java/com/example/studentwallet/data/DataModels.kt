@@ -58,19 +58,30 @@ enum class CategoryType(
 }
 
 data class Transaction(
-    val id: String,
-    val title: String,
-    val amount: Double,
-    val type: TransactionType,
-    val category: CategoryType,
-    val date: String,
-    val note: String = ""
+    val id: String = "",
+    val title: String = "",
+    val amount: Double = 0.0,
+    val type: TransactionType = TransactionType.EXPENSE,
+    val category: CategoryType = CategoryType.OTHER,
+    val date: String = "",
+    val note: String = "",
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 data class UserProfile(
-    val name: String = "Hajirah Juma",
-    val email: String = "hajirah@gmail.com",
-    val phone: String = "+265 991 234 567"
+    val uid: String = "",
+    val name: String = "",
+    val email: String = "",
+    val phone: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+data class MonthlyBudget(
+    val id: String = "",
+    val amount: Double = 100000.0,
+    val month: Int = 3,
+    val year: Int = 2026,
+    val updatedAt: Long = System.currentTimeMillis()
 )
 
 data class CategoryBudget(

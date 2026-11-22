@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.studentwallet.ui.theme.NavyBlue
 import com.example.studentwallet.ui.theme.OrangePrimary
 import com.example.studentwallet.ui.theme.TextMuted
 
@@ -127,7 +128,7 @@ private fun NavItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val activeColor = OrangePrimary
+    val activeColor = NavyBlue
     val inactiveColor = TextMuted
 
     Column(

@@ -1,5 +1,7 @@
 package com.example.studentwallet.ui.components
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.studentwallet.ui.theme.BorderColor
 import com.example.studentwallet.ui.theme.NavyBlue
-import com.example.studentwallet.ui.theme.OrangePrimary
 import com.example.studentwallet.ui.theme.TextPrimary
 import com.example.studentwallet.ui.theme.TextSecondary
 
@@ -31,7 +32,7 @@ fun PrimaryButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = OrangePrimary,
+    backgroundColor: Color = NavyBlue,
     contentColor: Color = Color.White,
     enabled: Boolean = true
 ) {
@@ -95,34 +96,50 @@ fun CustomTextField(
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, color = TextSecondary) },
-        placeholder = { Text(placeholder, color = Color.Gray) },
-        leadingIcon = leadingIcon?.let {
-            { Icon(imageVector = it, contentDescription = null, tint = NavyBlue) }
-        },
-        trailingIcon = trailingIcon?.let { icon ->
-            {
-                IconButton(onClick = { onTrailingIconClick?.invoke() }) {
-                    Icon(imageVector = icon, contentDescription = null, tint = TextSecondary)
+    val clickModifier = if (onClick != null) {
+        Modifier.clickable { onClick() }
+    } else {
+        Modifier
+    }
+
+    Box(modifier = modifier.then(clickModifier)) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label, color = TextSecondary) },
+            placeholder = { Text(placeholder, color = Color.Gray) },
+            leadingIcon = leadingIcon?.let {
+                { Icon(imageVector = it, contentDescription = null, tint = NavyBlue) }
+            },
+            trailingIcon = trailingIcon?.let { icon ->
+                {
+                    IconButton(onClick = {
+                        if (onClick != null) onClick() else onTrailingIconClick?.invoke()
+                    }) {
+                        Icon(imageVector = icon, contentDescription = null, tint = TextSecondary)
+                    }
                 }
-            }
-        },
-        visualTransformation = visualTransformation,
-        keyboardOptions = keyboardOptions,
-        readOnly = readOnly,
-        singleLine = true,
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = OrangePrimary,
-            unfocusedBorderColor = BorderColor,
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary
-        ),
-        modifier = modifier.fillMaxWidth()
-    )
+            },
+            visualTransformation = visualTransformation,
+            keyboardOptions = keyboardOptions,
+            readOnly = readOnly,
+            enabled = onClick == null,
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = NavyBlue,
+                unfocusedBorderColor = BorderColor,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                focusedTextColor = TextPrimary,
+                unfocusedTextColor = TextPrimary,
+                disabledBorderColor = BorderColor,
+                disabledContainerColor = Color.White,
+                disabledTextColor = TextPrimary,
+                disabledLabelColor = TextSecondary,
+                disabledPlaceholderColor = Color.Gray
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }

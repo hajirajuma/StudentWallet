@@ -1,8 +1,7 @@
 package com.example.studentwallet.ui.screens
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,6 +45,8 @@ import com.example.studentwallet.ui.theme.NavyBlue
 import com.example.studentwallet.ui.theme.StudentWalletTheme
 import com.example.studentwallet.ui.theme.TextSecondary
 import com.example.studentwallet.viewmodel.WalletViewModel
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun EditTransactionScreen(
@@ -55,14 +57,34 @@ fun EditTransactionScreen(
     onBackClick: () -> Unit,
     onDeleteSuccess: () -> Unit
 ) {
+    val context = LocalContext.current
     val transactions by viewModel.transactions.collectAsState()
     val currentTx = transactions.find { it.id == transactionId } ?: transactions.firstOrNull()
 
+    val calendar = Calendar.getInstance()
+    val initialYear = calendar.get(Calendar.YEAR)
+    val initialMonth = calendar.get(Calendar.MONTH)
+    val initialDay = calendar.get(Calendar.DAY_OF_MONTH)
+
+    val todayFormatted = String.format(Locale.getDefault(), "%04d-%02d-%02d", initialYear, initialMonth + 1, initialDay)
+
     var amountText by remember(currentTx) { mutableStateOf(currentTx?.amount?.let { String.format("%.0f", it) } ?: "5000") }
-    var dateText by remember(currentTx) { mutableStateOf(currentTx?.date ?: "2025-09-28") }
+    var dateText by remember(currentTx) { mutableStateOf(currentTx?.date ?: todayFormatted) }
     var noteText by remember(currentTx) { mutableStateOf(currentTx?.note ?: "Lunch") }
     var categoryState by remember(currentTx, selectedCategory) {
         mutableStateOf(selectedCategory ?: currentTx?.category ?: CategoryType.FOOD)
+    }
+
+    val datePickerDialog = remember {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                dateText = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, dayOfMonth)
+            },
+            initialYear,
+            initialMonth,
+            initialDay
+        )
     }
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -141,33 +163,29 @@ fun EditTransactionScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Date Field
+        // Date Field with Interactive Calendar Picker
         CustomTextField(
             value = dateText,
-            onValueChange = { dateText = it },
+            onValueChange = {},
             label = "Date",
-            placeholder = "2025-09-28",
-            trailingIcon = Icons.Default.CalendarToday
+            placeholder = "Select date",
+            trailingIcon = Icons.Default.CalendarToday,
+            readOnly = true,
+            onClick = { datePickerDialog.show() }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Category Selector
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onOpenCategorySelector() }
-        ) {
-            CustomTextField(
-                value = categoryState.title,
-                onValueChange = {},
-                label = "Category",
-                placeholder = "Food",
-                trailingIcon = Icons.Default.KeyboardArrowDown,
-                readOnly = true,
-                onClick = onOpenCategorySelector
-            )
-        }
+        CustomTextField(
+            value = categoryState.title,
+            onValueChange = {},
+            label = "Category",
+            placeholder = "Food",
+            trailingIcon = Icons.Default.KeyboardArrowDown,
+            readOnly = true,
+            onClick = onOpenCategorySelector
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 

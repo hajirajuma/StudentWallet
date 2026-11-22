@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import com.example.studentwallet.data.Transaction
 import com.example.studentwallet.data.TransactionType
 import com.example.studentwallet.ui.theme.NavyBlue
-import com.example.studentwallet.ui.theme.OrangePrimary
 import com.example.studentwallet.ui.theme.StudentWalletTheme
 import com.example.studentwallet.ui.theme.TextSecondary
 import com.example.studentwallet.viewmodel.WalletViewModel
@@ -163,7 +162,7 @@ private fun FilterTabItem(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) OrangePrimary else Color.Transparent)
+            .background(if (isSelected) NavyBlue else Color.Transparent)
             .clickable { onClick() }
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center
