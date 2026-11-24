@@ -1,6 +1,5 @@
 package com.example.studentwallet.viewmodel
 
-import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.studentwallet.data.CategoryBudget
@@ -36,7 +35,7 @@ class WalletViewModel(
     private val _authUiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val authUiState: StateFlow<AuthUiState> = _authUiState.asStateFlow()
 
-    private val _isLoggedIn = MutableStateFlow(repository.currentUser != null)
+    private val _isLoggedIn = MutableStateFlow(repository.currentUserId != null)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     private val _userProfile = MutableStateFlow(UserProfile())
@@ -66,8 +65,8 @@ class WalletViewModel(
     private var budgetJob: Job? = null
 
     init {
-        repository.currentUser?.let { user ->
-            attachUserListeners(user.uid)
+        repository.currentUserId?.let { uid ->
+            attachUserListeners(uid)
         }
     }
 
@@ -113,16 +112,20 @@ class WalletViewModel(
             msg.contains("unreachable", ignoreCase = true) -> {
                 "No internet connection. Please check your network and try again."
             }
-            exception is FirebaseAuthInvalidCredentialsException -> {
-                "Invalid email address or password."
+            exception is FirebaseAuthInvalidCredentialsException ||
+            msg.contains("Incorrect password", ignoreCase = true) -> {
+                "Incorrect password or invalid email format."
             }
-            exception is FirebaseAuthInvalidUserException -> {
+            exception is FirebaseAuthInvalidUserException ||
+            msg.contains("No account found", ignoreCase = true) -> {
                 "No account found with this email address."
             }
-            exception is FirebaseAuthUserCollisionException -> {
+            exception is FirebaseAuthUserCollisionException ||
+            msg.contains("already exists", ignoreCase = true) -> {
                 "An account with this email address already exists."
             }
-            exception is FirebaseAuthWeakPasswordException -> {
+            exception is FirebaseAuthWeakPasswordException ||
+            msg.contains("Password is too weak", ignoreCase = true) -> {
                 "Password is too weak. Please use at least 6 characters."
             }
             else -> {
@@ -155,12 +158,23 @@ class WalletViewModel(
         return getTotalIncome() - getTotalExpenses()
     }
 
+    private fun isValidEmail(email: String): Boolean {
+        val emailRegex = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$")
+        return emailRegex.matches(email)
+    }
+
     fun login(email: String, pass: String, onResult: (Boolean, String?) -> Unit) {
         val trimmedEmail = email.trim()
         val trimmedPass = pass.trim()
 
-        if (trimmedEmail.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
-            val err = "Please enter a valid email address."
+        if (trimmedEmail.isEmpty()) {
+            val err = "Please enter your email address."
+            _authUiState.value = AuthUiState.Error(err)
+            onResult(false, err)
+            return
+        }
+        if (!isValidEmail(trimmedEmail)) {
+            val err = "Incorrect password or invalid email format."
             _authUiState.value = AuthUiState.Error(err)
             onResult(false, err)
             return
@@ -202,12 +216,12 @@ class WalletViewModel(
         val trimmedPass = pass.trim()
 
         if (trimmedName.isEmpty()) {
-            val err = "Full name is required."
+            val err = "Please enter your full name."
             _authUiState.value = AuthUiState.Error(err)
             onResult(false, err)
             return
         }
-        if (trimmedEmail.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
+        if (trimmedEmail.isEmpty() || !isValidEmail(trimmedEmail)) {
             val err = "A valid email address is required."
             _authUiState.value = AuthUiState.Error(err)
             onResult(false, err)
@@ -220,7 +234,7 @@ class WalletViewModel(
             return
         }
         if (trimmedPass.length < 6) {
-            val err = "Password must be at least 6 characters."
+            val err = "Password must be at least 6 characters long."
             _authUiState.value = AuthUiState.Error(err)
             onResult(false, err)
             return
@@ -266,7 +280,7 @@ class WalletViewModel(
         date: String,
         note: String
     ) {
-        val uid = repository.currentUser?.uid ?: return
+        val uid = repository.currentUserId ?: return
         val newTx = Transaction(
             id = UUID.randomUUID().toString(),
             title = if (title.isBlank()) category.title else title,
@@ -289,7 +303,7 @@ class WalletViewModel(
         category: CategoryType,
         note: String
     ) {
-        val uid = repository.currentUser?.uid ?: return
+        val uid = repository.currentUserId ?: return
         val existingTx = _transactions.value.find { it.id == id } ?: return
         val updatedTx = existingTx.copy(
             title = category.title,
@@ -304,7 +318,7 @@ class WalletViewModel(
     }
 
     fun deleteTransaction(id: String) {
-        val uid = repository.currentUser?.uid ?: return
+        val uid = repository.currentUserId ?: return
         viewModelScope.launch {
             repository.deleteTransaction(uid, id)
         }
@@ -341,7 +355,7 @@ class WalletViewModel(
             _budgetError.value = "Enter a budget amount greater than 0."
             return false
         }
-        val uid = repository.currentUser?.uid
+        val uid = repository.currentUserId
         if (uid == null) {
             _budgetError.value = "You need to be signed in to save a budget."
             return false
@@ -375,7 +389,7 @@ class WalletViewModel(
     }
 
     fun updateUserProfile(name: String, email: String, phone: String) {
-        val uid = repository.currentUser?.uid ?: return
+        val uid = repository.currentUserId ?: return
         val newName = name.ifBlank { _userProfile.value.name }
         val newEmail = email.ifBlank { _userProfile.value.email }
         val newPhone = phone.ifBlank { _userProfile.value.phone }

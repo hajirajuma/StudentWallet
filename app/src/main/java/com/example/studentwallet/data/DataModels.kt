@@ -89,3 +89,8 @@ data class CategoryBudget(
     val spentAmount: Double,
     val totalBudget: Double
 )
+
+data class AuthUser(
+    val uid: String = "",
+    val email: String = ""
+)

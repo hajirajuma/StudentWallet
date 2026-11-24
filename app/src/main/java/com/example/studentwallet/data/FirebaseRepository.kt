@@ -10,20 +10,23 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 
-class FirebaseRepository {
+open class FirebaseRepository {
 
     private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
     private val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
-    val currentUser: FirebaseUser?
+    open val currentUser: FirebaseUser?
         get() = auth.currentUser
 
-    suspend fun register(
+    open val currentUserId: String?
+        get() = currentUser?.uid
+
+    open suspend fun register(
         name: String,
         email: String,
         phone: String,
         pass: String
-    ): Result<FirebaseUser> {
+    ): Result<AuthUser> {
         return try {
             val authResult = auth.createUserWithEmailAndPassword(email, pass).await()
             val user = authResult.user ?: throw IllegalStateException("User creation failed.")
@@ -35,23 +38,23 @@ class FirebaseRepository {
                 createdAt = System.currentTimeMillis()
             )
             saveUserProfile(userProfile).await()
-            Result.success(user)
+            Result.success(AuthUser(user.uid, user.email ?: email))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun login(email: String, pass: String): Result<FirebaseUser> {
+    open suspend fun login(email: String, pass: String): Result<AuthUser> {
         return try {
             val authResult = auth.signInWithEmailAndPassword(email, pass).await()
             val user = authResult.user ?: throw IllegalStateException("Login failed.")
-            Result.success(user)
+            Result.success(AuthUser(user.uid, user.email ?: email))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    fun logout() {
+    open fun logout() {
         auth.signOut()
     }
 
@@ -68,7 +71,7 @@ class FirebaseRepository {
                 )
             )
 
-    suspend fun updateUserProfile(uid: String, name: String, email: String, phone: String): Result<Unit> {
+    open suspend fun updateUserProfile(uid: String, name: String, email: String, phone: String): Result<Unit> {
         return try {
             firestore.collection("users").document(uid).update(
                 mapOf(
@@ -83,7 +86,7 @@ class FirebaseRepository {
         }
     }
 
-    fun getUserProfileFlow(uid: String): Flow<UserProfile?> = callbackFlow {
+    open fun getUserProfileFlow(uid: String): Flow<UserProfile?> = callbackFlow {
         val docRef = firestore.collection("users").document(uid)
         val listener = docRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
@@ -106,7 +109,7 @@ class FirebaseRepository {
         awaitClose { listener.remove() }
     }
 
-    fun getTransactionsFlow(uid: String): Flow<List<Transaction>> = callbackFlow {
+    open fun getTransactionsFlow(uid: String): Flow<List<Transaction>> = callbackFlow {
         val colRef = firestore.collection("users")
             .document(uid)
             .collection("transactions")
@@ -150,7 +153,7 @@ class FirebaseRepository {
         awaitClose { listener.remove() }
     }
 
-    suspend fun addTransaction(uid: String, tx: Transaction): Result<Unit> {
+    open suspend fun addTransaction(uid: String, tx: Transaction): Result<Unit> {
         return try {
             val docRef = if (tx.id.isNotBlank()) {
                 firestore.collection("users").document(uid).collection("transactions").document(tx.id)
@@ -175,7 +178,7 @@ class FirebaseRepository {
         }
     }
 
-    suspend fun updateTransaction(uid: String, tx: Transaction): Result<Unit> {
+    open suspend fun updateTransaction(uid: String, tx: Transaction): Result<Unit> {
         return try {
             val txData = mapOf(
                 "id" to tx.id,
@@ -198,7 +201,7 @@ class FirebaseRepository {
         }
     }
 
-    suspend fun deleteTransaction(uid: String, transactionId: String): Result<Unit> {
+    open suspend fun deleteTransaction(uid: String, transactionId: String): Result<Unit> {
         return try {
             firestore.collection("users")
                 .document(uid)
@@ -212,7 +215,7 @@ class FirebaseRepository {
         }
     }
 
-    fun getMonthlyBudgetFlow(uid: String): Flow<Double> = callbackFlow {
+    open fun getMonthlyBudgetFlow(uid: String): Flow<Double> = callbackFlow {
         val colRef = firestore.collection("users")
             .document(uid)
             .collection("budgets")
@@ -243,7 +246,7 @@ class FirebaseRepository {
         awaitClose { listener.remove() }
     }
 
-    suspend fun setMonthlyBudget(uid: String, month: Int, year: Int, amount: Double): Result<Unit> {
+    open suspend fun setMonthlyBudget(uid: String, month: Int, year: Int, amount: Double): Result<Unit> {
         val signedInUid = auth.currentUser?.uid
             ?: return Result.failure(IllegalStateException("You need to be signed in to save a budget."))
         if (signedInUid != uid) {

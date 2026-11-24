@@ -201,7 +201,7 @@ fun AddTransactionScreen(
         // Action Buttons
         PrimaryButton(
             text = "Save",
-            enabled = amountText.isNotBlank(),
+            enabled = amountText.isNotBlank() && (amountText.toDoubleOrNull() ?: 0.0) > 0.0,
             onClick = {
                 val amountVal = amountText.toDoubleOrNull() ?: 0.0
                 val category = if (isExpense) (selectedCategory ?: CategoryType.OTHER) else CategoryType.ALLOWANCE
